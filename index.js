@@ -1,8 +1,8 @@
 'use strict';
 
 var joi = require('joi');
-var find = require('lodash.find');
-var get = require('lodash.get');
+var find = require('lodash/find');
+var get = require('lodash/get');
 
 module.exports = exports = function parse (schema, existingDefinitions) {
 	// inspect(schema);
@@ -328,8 +328,3 @@ function meta (schema, key) {
 function refDef (name) {
 	return { $ref: '#/definitions/' + name };
 }
-
-// var inspectU = require('util').inspect;
-// function inspect (value) {
-// 		console.error(inspectU(value, { colors: true, depth: 10 }));
-// }

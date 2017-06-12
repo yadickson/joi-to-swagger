@@ -41,7 +41,6 @@
     "index.js"
   ],
   "dependencies": {
-    "lodash.find": "^4.0.0",
-    "lodash.get": "^4.0.2"
+    "lodash": "^4.0.2"
   }
 }
