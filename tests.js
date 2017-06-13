@@ -334,4 +334,38 @@ suite('swagger converts', (s) => {
 			},
 		}
 	);
+
+	// recursive
+	const Person = joi.object({
+		firstName: joi.string().required(),
+		lastName: joi.string().required(),
+		children: joi.array().items(joi.lazy(() => Person))
+	})
+	simpleTest(
+		Person,
+		{
+			type: 'object',
+			required: [ 'firstName', 'lastName' ],
+			properties: {
+				firstName: { type: 'string' },
+				lastName: { type: 'string' },
+				children: {
+					type: 'array',
+					items: {
+						type: 'object',
+						required: [ 'firstName', 'lastName' ],
+						properties: {
+							firstName: { type: 'string' },
+							lastName: { type: 'string' },
+							children: {
+								type: 'array',
+								items: {
+								},
+							}
+						},
+					},
+				}
+			},
+		}
+	);
 });

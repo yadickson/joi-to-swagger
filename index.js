@@ -317,6 +317,16 @@ var parseAsType = {
 
 		return swagger;
 	},
+	lazy: (schema, existingDefinitions, newDefinitionsByRef) => {
+		var fn = get(schema, '_flags.lazy')
+		if (fn && !schema.lazied) {
+			schema.lazied = true
+			var newSchema = fn()
+			var parsed = parseAsType[newSchema._type](newSchema, existingDefinitions, newDefinitionsByRef);
+			return parsed
+		}
+		return {};
+	},
 };
 
 function meta (schema, key) {
