@@ -324,6 +324,32 @@ var parseAsType = {
 
 		return swagger;
 	},
+	any: (schema, existingDefinitions, newDefinitionsByRef) => {
+		var swagger = {};
+		for (let i = 0; i < schema._tests.length; i++) {
+			const test = schema._tests[i];
+			if (test.name === 'min') {
+				swagger.minLength = test.arg;
+			}
+
+			if (test.name === 'max') {
+				swagger.maxLength = test.arg;
+			}
+
+			if (test.name === 'length') {
+				swagger.minLength = test.arg;
+				swagger.maxLength = test.arg;
+			}
+		}
+		var valids = schema._valids.values();
+		if (valids.length) {
+			swagger.oneOf = valids.map(
+				(itemsSchema) =>
+				exports(itemsSchema, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
+			);
+		}
+		return swagger;
+	},
 	lazy: (schema, existingDefinitions, newDefinitionsByRef) => {
 		var fn = get(schema, '_flags.lazy');
 		if (fn && !schema.lazied) {
