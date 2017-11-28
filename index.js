@@ -231,6 +231,10 @@ var parseAsType = {
 			itemsSchema = firstItem.schema;
 		}
 
+		if (!itemsSchema) {
+			return;
+		}
+
 		var items = exports(itemsSchema, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {}));
 		if (get(itemsSchema, '_flags.presence') === 'required') {
 			items.swagger.__required = true;
@@ -244,7 +248,9 @@ var parseAsType = {
 		var index = meta(schema, 'swaggerIndex') || 0;
 		var itemsSchema = get(schema, [ '_inner', 'items', index ]);
 
-		if (!itemsSchema) throw Error('Array schema does not define an items schema at index ' + index);
+		if (!itemsSchema) {
+			return { type: 'array' };
+		}
 
 		if (get(itemsSchema, '_flags.presence') === 'forbidden') {
 			return false;
@@ -289,6 +295,7 @@ var parseAsType = {
 		var children = get(schema, '_inner.children') || [];
 		children.forEach((child) => {
 			var key = child.key;
+			if (!child.schema) return;
 			var prop = exports(child.schema, combinedDefinitions);
 			if (!prop.swagger) { // swagger is falsy if joi.forbidden()
 				return;
@@ -318,12 +325,12 @@ var parseAsType = {
 		return swagger;
 	},
 	lazy: (schema, existingDefinitions, newDefinitionsByRef) => {
-		var fn = get(schema, '_flags.lazy')
+		var fn = get(schema, '_flags.lazy');
 		if (fn && !schema.lazied) {
-			schema.lazied = true
-			var newSchema = fn()
+			schema.lazied = true;
+			var newSchema = fn();
 			var parsed = parseAsType[newSchema._type](newSchema, existingDefinitions, newDefinitionsByRef);
-			return parsed
+			return parsed;
 		}
 		return {};
 	},
