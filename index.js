@@ -50,6 +50,11 @@ module.exports = exports = function parse (schema, existingDefinitions) {
 		swagger.default = defaultValue;
 	}
 
+	var examples = get(schema, '_examples');
+	if (!defaultValue && examples && examples[0]) {
+		swagger.example = examples[0];
+	}
+
 	if (metaDefName) {
 		definitions[metaDefName] = swagger;
 		return { swagger: refDef(metaDefName), definitions };

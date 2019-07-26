@@ -57,6 +57,14 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.string().example('test code'),
+		{
+			type: 'string',
+			example: 'test code',
+		}
+	);
+
+	simpleTest(
 		joi.string().min(4).max(9),
 		{
 			type: 'string',
@@ -339,8 +347,9 @@ suite('swagger converts', (s) => {
 	const Person = joi.object({
 		firstName: joi.string().required(),
 		lastName: joi.string().required(),
-		children: joi.array().items(joi.lazy(() => Person))
-	})
+		children: joi.array().items(joi.lazy(() => Person)),
+	});
+
 	simpleTest(
 		Person,
 		{
@@ -361,10 +370,10 @@ suite('swagger converts', (s) => {
 								type: 'array',
 								items: {
 								},
-							}
+							},
 						},
 					},
-				}
+				},
 			},
 		}
 	);
