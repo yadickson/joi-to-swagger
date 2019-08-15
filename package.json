@@ -1,6 +1,6 @@
 {
   "name": "o2team-joi-to-swagger",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "",
   "main": "index.js",
   "types": "index.d.ts",
@@ -37,7 +37,7 @@
     "tapsuite": "~1.1.1"
   },
   "peerDependencies": {
-    "joi": ">= 13"
+    "@hapi/joi": ">= 13"
   },
   "files": [
     "index.js",
