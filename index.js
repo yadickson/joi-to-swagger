@@ -9,8 +9,6 @@ var patterns = {
 	alphanumUpper: '^[A-Z0-9]*$',
 };
 
-var mainVersion = parseInt(joi.version.replace(/^(\d+?)\..+$/, '$1'))
-
 var isJoi = function (joiObj) {
 	return !!((joiObj && joiObj.isJoi));
 };
@@ -408,5 +406,5 @@ function refDef (type, name) {
 }
 
 function extractExampleValue (example) {
-	return mainVersion < 14 ? example : example.value;
+	return typeof example.value === 'undefined' ? example : example.value;
 }

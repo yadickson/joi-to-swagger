@@ -332,6 +332,15 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.object().example({a: 1}),
+		{
+			example: { a: 1 },
+			properties: {},
+			type: 'object',
+		}
+	);
+
+	simpleTest(
 		{
 			start: joi.object().unknown(false).keys({
 				lat:  joi.number().min(-90).max(90).required(),
