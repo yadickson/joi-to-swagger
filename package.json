@@ -1,15 +1,16 @@
 {
   "name": "o2team-joi-to-swagger",
-  "version": "1.3.1",
+  "version": "3.2.0",
   "description": "",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "tap tests.js",
     "test:travis": "tap --reporter=tap tests.js",
     "lint": "eslint ./"
   },
   "engines": {
-    "node": ">=4.2.0"
+    "node": ">=8.9.0"
   },
   "keywords": [
     "joi",
@@ -26,21 +27,23 @@
   "author": "Jocelyn Badgley <joc@twipped.com>",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "~4.11.0",
-    "eslint-config-chiper": "~2.2.0",
-    "eslint-plugin-node": "~5.2.1",
-    "eslint-plugin-promise": "~3.6.0",
-    "joi": "~12.0.0",
-    "tap": "~11.0.0",
+    "@hapi/joi": "^15.1.0",
+    "eslint": "~5.16.0",
+    "eslint-config-twipped": "~3.0.0",
+    "eslint-plugin-node": "~8.0.1",
+    "eslint-plugin-promise": "~4.1.1",
+    "joi": "13",
+    "tap": "~12.6.1",
     "tapsuite": "~1.1.1"
   },
   "peerDependencies": {
-    "joi": ">= 10"
+    "joi": ">= 13"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "dependencies": {
-    "lodash": "^4.0.2"
+    "lodash": "^4.17.11"
   }
 }

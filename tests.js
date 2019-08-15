@@ -1,15 +1,16 @@
-
 var suite = require('tapsuite');
 var parser = require('./');
-var joi = require('joi');
+var joi = require('@hapi/joi');
+
+var mainVersion = parseInt(joi.version.replace(/^(\d+?)\..+$/, '$1'))
 
 suite('swagger converts', (s) => {
 	var i = 0;
-	function simpleTest (input, output, definitions, only) {
+	function simpleTest (input, output, components, only) {
 		s[only ? 'only' : 'test']('Set ' + i++, (t) => {
 			var result = parser(input);
 			t.deepEqual(result.swagger, output, 'swagger matches');
-			if (definitions) t.deepEqual(result.definitions, definitions, 'definitions match');
+			if (components) t.deepEqual(result.components, components, 'components match');
 			t.end();
 		});
 	}
@@ -49,18 +50,18 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
-		joi.string().regex(/^A$/),
+		joi.string().label('test'),
 		{
 			type: 'string',
-			pattern: '/^A$/',
+			title: 'test',
 		}
 	);
 
 	simpleTest(
-		joi.string().example('test code'),
+		joi.string().regex(/^A$/),
 		{
 			type: 'string',
-			example: 'test code',
+			pattern: '^A$',
 		}
 	);
 
@@ -95,7 +96,7 @@ suite('swagger converts', (s) => {
 		joi.string().alphanum(),
 		{
 			type: 'string',
-			pattern: '/^[a-zA-Z0-9]*$/',
+			pattern: '^[a-zA-Z0-9]*$',
 		}
 	);
 
@@ -103,7 +104,7 @@ suite('swagger converts', (s) => {
 		joi.string().strict().alphanum().lowercase(),
 		{
 			type: 'string',
-			pattern: '/^[a-z0-9]*$/',
+			pattern: '^[a-z0-9]*$',
 		}
 	);
 
@@ -112,7 +113,7 @@ suite('swagger converts', (s) => {
 		joi.string().alphanum().uppercase(),
 		{
 			type: 'string',
-			pattern: '/^[a-zA-Z0-9]*$/',
+			pattern: '^[a-zA-Z0-9]*$',
 		}
 	);
 
@@ -120,7 +121,7 @@ suite('swagger converts', (s) => {
 		joi.string().strict().alphanum().uppercase(),
 		{
 			type: 'string',
-			pattern: '/^[A-Z0-9]*$/',
+			pattern: '^[A-Z0-9]*$',
 		}
 	);
 
@@ -143,8 +144,9 @@ suite('swagger converts', (s) => {
 	simpleTest(
 		joi.string().only('A', 'B', 'C', null),
 		{
-			type: [ 'string', 'null' ],
+			type: 'string',
 			enum: [ 'A', 'B', 'C' ],
+			nullable: true,
 		}
 	);
 
@@ -158,7 +160,8 @@ suite('swagger converts', (s) => {
 	simpleTest(
 		joi.boolean().allow(null),
 		{
-			type: [ 'boolean', 'null' ],
+			type: 'boolean',
+			nullable: true,
 		}
 	);
 
@@ -232,6 +235,7 @@ suite('swagger converts', (s) => {
 	simpleTest(
 		joi.object({
 			req: joi.string().required(),
+			forbiddenAny: joi.forbidden(),
 			forbiddenString: joi.string().forbidden(),
 			forbiddenNumber: joi.number().forbidden(),
 			forbiddenBoolean: joi.boolean().forbidden(),
@@ -292,14 +296,39 @@ suite('swagger converts', (s) => {
 	simpleTest(
 		joi.string().alphanum().email().meta({ className: 'Email' }),
 		{
-			$ref: '#/definitions/Email',
+			$ref: '#/components/schemas/Email',
 		},
 		{
-			Email: {
-				type: 'string',
-				format: 'email',
+			schemas: {
+				Email: {
+					type: 'string',
+					format: 'email',
+				},
 			},
 		}
+	);
+
+	simpleTest(
+		joi.string().example('sii'),
+		{
+			example: 'sii',
+			type: 'string',
+		}
+	);
+
+	simpleTest(
+		joi.string().example('sel').example('wyn'),
+		mainVersion < 14
+			? {
+				examples: [
+					'sel',
+					'wyn',
+				],
+				type: 'string',
+			} : {
+				example: 'wyn',
+				type: 'string',
+			}
 	);
 
 	simpleTest(
@@ -316,27 +345,62 @@ suite('swagger converts', (s) => {
 		{
 			type: 'object',
 			properties: {
-				start: { $ref: '#/definitions/GeoPoint' },
-				stop: { $ref: '#/definitions/GeoPoint' },
+				start: { $ref: '#/components/schemas/GeoPoint' },
+				stop: { $ref: '#/components/schemas/GeoPoint' },
 			},
 		},
 		{
-			GeoPoint: {
-				type: 'object',
-				required: [ 'lat', 'lon' ],
-				additionalProperties: false,
-				properties: {
-					lat: {
-						type: 'number',
-						format: 'float',
-						minimum: -90,
-						maximum: 90,
+			schemas: {
+				GeoPoint: {
+					type: 'object',
+					required: [ 'lat', 'lon' ],
+					additionalProperties: false,
+					properties: {
+						lat: {
+							type: 'number',
+							format: 'float',
+							minimum: -90,
+							maximum: 90,
+						},
+						lon: {
+							type: 'number',
+							format: 'float',
+							minimum: -180,
+							maximum: 180,
+						},
 					},
-					lon: {
-						type: 'number',
-						format: 'float',
-						minimum: -180,
-						maximum: 180,
+				},
+			},
+		}
+	);
+
+	simpleTest(
+		{
+			body: joi.object().keys({
+				subject: joi.string(),
+				message: joi.string().trim().min(1, 'utf8').max(400, 'utf8').meta({ className: 'MessageBody' }),
+			}).meta({ className: 'MessageCreate', classTarget: 'requestBodies' }),
+		},
+		{
+			type: 'object',
+			properties: {
+				body: { '$ref': '#/components/requestBodies/MessageCreate' },
+			},
+		},
+		{
+			schemas: {
+				'MessageBody': {
+					maxLength: 400,
+					minLength: 1,
+					type: 'string',
+				},
+			},
+			requestBodies: {
+				'MessageCreate': {
+					type: 'object',
+					properties: {
+						message: { '$ref': '#/components/schemas/MessageBody' },
+						subject: { 'type': 'string' },
 					},
 				},
 			},
@@ -375,6 +439,48 @@ suite('swagger converts', (s) => {
 					},
 				},
 			},
+		}
+	);
+
+	simpleTest(
+		{
+			id: joi.string()
+				.when('version', { is: joi.number().greater(0).required(), then: joi.string().required() }),
+		},
+		{
+			type: 'object',
+			properties: {
+				id: { type: 'string' },
+			},
+		}
+	);
+
+	simpleTest(
+		{
+			id: joi.string()
+				.description('user id')
+				.forbidden(),
+		},
+		{
+			type: 'object',
+			properties: {},
+		}
+	);
+
+	simpleTest(
+		joi.date().default(Date.now, 'current date'),
+		{
+			type: 'string',
+			format: 'date-time',
+		}
+	);
+	// test files
+	simpleTest(
+		joi.any().meta({ swaggerType: 'file' }).description('simpleFile'),
+		{
+			description: 'simpleFile',
+			in: 'formData',
+			type: 'file',
 		}
 	);
 });

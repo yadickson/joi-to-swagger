@@ -1,7 +1,9 @@
 joi-to-swagger
 ==============
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/Twipped/joi-to-swagger.svg)](https://greenkeeper.io/)
+[![npm](https://img.shields.io/npm/v/joi-to-swagger.svg?logo=npm)](https://www.npmjs.com/package/joi-to-swagger)
+[![Dependency Status](https://img.shields.io/david/Twipped/joi-to-swagger.svg?style=flat-square)](https://david-dm.org/Twipped/joi-to-swagger)
+[![Download Status](https://img.shields.io/npm/dm/joi-to-swagger.svg?style=flat-square)](https://www.npmjs.com/package/joi-to-swagger)
 
 Conversion library for transforming [Joi](http://npm.im/joi) schema objects into [Swagger](http://swagger.io) schema definitions.
 
@@ -16,7 +18,7 @@ joi.object().keys({
 })
 ```
 
-```js
+```json5
 // output
 {
   "type": "object",
@@ -34,10 +36,8 @@ joi.object().keys({
       "format": "email"
     },
     "created": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
+      "nullable": true,
       "format": "date-time"
     },
     "active": {
@@ -52,12 +52,12 @@ joi.object().keys({
 ```js
 var j2s = require('joi-to-swagger');
 
-var {swagger, definitions} = j2s(mySchema, existingDefinitions);
+var {swagger, components} = j2s(mySchema, existingComponents);
 ```
 
-J2S takes two arguments, the first being the Joi object you wish to convert. The second optional argument is a collection of existing definitions to reference against for the meta `className` identifiers (see below).
+J2S takes two arguments, the first being the Joi object you wish to convert. The second optional argument is a collection of existing components to reference against for the meta `className` identifiers (see below).
 
-J2S returns a result object containing `swagger` and `definitions` properties. `swagger` contains your new schema, `definitions` contains any definitions that were generated while parsing your schema.
+J2S returns a result object containing `swagger` and `components` properties. `swagger` contains your new schema, `components` contains any components that were generated while parsing your schema.
 
 ## Supported Conventions:
 
@@ -74,7 +74,7 @@ J2S returns a result object containing `swagger` and `definitions` properties. `
   - `.precision()` -> `"format": "double"`
   - `.integer()` -> `"type": "integer"`
   - `.strict().only(1, 2, '3')` -> `"enum": [1, 2]` (note that non-numbers are omitted due to swagger type constraints)
-  - `.allow(null)` -> `"type": ["number", "null"]`
+  - `.allow(null)` -> `"nullable": true`
   - `.min(5)` -> `"minimum": 5`
   - `.max(10)` -> `"maximum": 10`
   - `.positive()` -> `"minimum": 1`
@@ -91,7 +91,7 @@ J2S returns a result object containing `swagger` and `definitions` properties. `
   - `.email()` -> `"format": "email"`
   - `.isoDate()` -> `"format": "date-time"`
   - `.regex(/foo/)` -> `"pattern": "/foo/"`
-  - `.allow(null)` -> `"type": ["string", "null"]`
+  - `.allow(null)` -> `"nullable": true`
   - `.min(5)` -> `"minLength": 5`
   - `.max(10)` -> `"maxLength": 10`
 
@@ -99,23 +99,34 @@ J2S returns a result object containing `swagger` and `definitions` properties. `
   - `.encoding('base64')` -> `"format": "byte"`
   - `.min(5)` -> `"minLength": 5`
   - `.max(10)` -> `"maxLength": 10`
-  - `.allow(null)` -> `"type": ["string", "null"]`
+  - `.allow(null)` -> `"nullable": true`
 
 - `joi.date()` produces `"type": "string"` with a format of `"date-time"`.
-  - `.allow(null)` -> `"type": ["string", "null"]`
+  - `.allow(null)` -> `"nullable": true`
 
 - `joi.alternatives()` defines the structure using the first schema provided on `.items()` (see below for how to override)
 
 - `any.default()` sets the `"default"` detail.
 
+- `any.example()` sets the `"example"` or `"examples"`.
+  - `.example('hi')` -> `"example": "hi"`
+  - joi < v14: `.example('hi').example('hey')` -> `"examples": ["hi", "hey"]`
+  - joi v14: `.example('hi', 'hey')` -> `"examples": ["hi", "hey"]`
+
+- `joi.any().meta({ swaggerType: 'file' }).description('simpleFile')` add a file to the swagger structure
+
 ## Meta Overrides
 
 The following may be provided on a joi `.meta()` object to explicitly override default joi-to-schema behavior.
 
-**className**: By default J2S will be full verbose in its definitions. If an object has a `className` string, J2S will look for an existing definition with that name, and if a definition does not exist then it will create one. Either way, it will produce a `$ref` element for that schema definition. If a new definition is created it will be returned with the swagger schema.
+**className**: By default J2S will be full verbose in its components. If an object has a `className` string, J2S will look for an existing schema component with that name, and if a component does not exist then it will create one. Either way, it will produce a `$ref` element for that schema component. If a new component is created it will be returned with the swagger schema.
 
-**swaggerIndex**: Swagger's deterministic design disallows for supporting multiple type definitions. Because of this, only a single schema from `.alternatives()` and `.array().items()` may be converted to swagger. By default J2S will use the first definition. Defining a different zero based index for this meta tag will override that behavior.
+**classTarget**: Named components are assumed to be schemas, and are referenced as `components/schemas/ComponentName`. If a `classTarget` meta value is provided (such as `parameters`), this will replace schemas in the reference.
 
-**swagger**: To explicitly define your own swagger definition for a joi schema object, place that swagger object in the `swagger` meta tag. It will be mixed in to the schema that J2S produces.
+**swaggerIndex**: Swagger's deterministic design disallows for supporting multiple type components. Because of this, only a single schema from `.alternatives()` and `.array().items()` may be converted to swagger. By default J2S will use the first component. Defining a different zero based index for this meta tag will override that behavior.
 
-**swaggerOverride**: If this meta tag is truthy, the `swagger` definition will replace the result for that schema instead of mixing in to it.
+**swagger**: To explicitly define your own swagger component for a joi schema object, place that swagger object in the `swagger` meta tag. It will be mixed in to the schema that J2S produces.
+
+**swaggerOverride**: If this meta tag is truthy, the `swagger` component will replace the result for that schema instead of mixing in to it.
+
+**swaggerType**: Can be used with the .any() type to add files.
