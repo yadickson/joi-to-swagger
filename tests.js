@@ -2,8 +2,6 @@ var suite = require('tapsuite');
 var parser = require('./');
 var joi = require('@hapi/joi');
 
-var mainVersion = parseInt(joi.version.replace(/^(\d+?)\..+$/, '$1'))
-
 suite('swagger converts', (s) => {
 	var i = 0;
 	function simpleTest (input, output, components, only) {
@@ -16,11 +14,42 @@ suite('swagger converts', (s) => {
 	}
 
 	simpleTest(
+		joi.any(),
+		{
+			type: 'string'
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().default(10),
+		{
+			type: 'integer',
+			default: 10
+		}
+	);
+
+	simpleTest(
 		joi.number().integer().min(1).max(10),
 		{
 			type: 'integer',
 			maximum: 10,
 			minimum: 1,
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().positive(),
+		{
+			type: 'integer',
+			minimum: 1,
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().negative(),
+		{
+			type: 'integer',
+			maximum: -1,
 		}
 	);
 
@@ -34,11 +63,54 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.number().negative(),
+		{
+			type: 'number',
+			format: 'float',
+			maximum: -1,
+		}
+	);
+
+	simpleTest(
 		joi.number().precision(2).negative(),
 		{
 			type: 'number',
 			format: 'double',
 			maximum: -1,
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().label('number title'),
+		{
+			type: 'integer',
+			title: 'number title'
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().description('number description'),
+		{
+			type: 'integer',
+			description: 'number description'
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().allow(1, 2, 3),
+		{
+			type: 'integer',
+			enum: [ 1, 2, 3 ],
+			nullable: false
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().allow(1, 2, 3, null),
+		{
+			type: 'integer',
+			enum: [ 1, 2, 3 ],
+			nullable: true
 		}
 	);
 
@@ -58,10 +130,26 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.string().description('test'),
+		{
+			type: 'string',
+			description: 'test',
+		}
+	);
+
+	simpleTest(
 		joi.string().regex(/^A$/),
 		{
 			type: 'string',
 			pattern: '^A$',
+		}
+	);
+
+	simpleTest(
+		joi.string().pattern(new RegExp('^AB$')),
+		{
+			type: 'string',
+			pattern: '^AB$',
 		}
 	);
 
@@ -126,7 +214,31 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.string().strict().alphanum().lowercase(),
+		{
+			type: 'string',
+			pattern: '^[a-z0-9]*$',
+		}
+	);
+
+	simpleTest(
 		joi.string().alphanum().email(),
+		{
+			type: 'string',
+			format: 'email',
+		}
+	);
+
+	simpleTest(
+		joi.string().alphanum().regex(/^$/).email(),
+		{
+			type: 'string',
+			format: 'email',
+		}
+	);
+
+	simpleTest(
+		joi.string().alphanum().email().regex(/^$/),
 		{
 			type: 'string',
 			format: 'email',
@@ -142,11 +254,60 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
-		joi.string().only('A', 'B', 'C', null),
+		joi.string().alphanum().regex(/^$/).isoDate(),
+		{
+			type: 'string',
+			format: 'date-time',
+		}
+	);
+
+	simpleTest(
+		joi.string().alphanum().isoDate().regex(/^$/),
+		{
+			type: 'string',
+			format: 'date-time',
+		}
+	);
+
+	simpleTest(
+		joi.string().allow('A', 'B', 'C'),
 		{
 			type: 'string',
 			enum: [ 'A', 'B', 'C' ],
-			nullable: true,
+			nullable: false
+		}
+	);
+
+	simpleTest(
+		joi.string().allow('A', 'B', 'C', null),
+		{
+			type: 'string',
+			enum: [ 'A', 'B', 'C' ],
+			nullable: true
+		}
+	);
+
+	simpleTest(
+		joi.string().token(),
+		{
+			type: 'string',
+			pattern: '^[a-zA-Z0-9_]*$',
+		}
+	);
+
+	simpleTest(
+		joi.string().token().lowercase(),
+		{
+			type: 'string',
+			pattern: '^[a-z0-9_]*$',
+		}
+	);
+
+	simpleTest(
+		joi.string().token().uppercase(),
+		{
+			type: 'string',
+			pattern: '^[A-Z0-9_]*$',
 		}
 	);
 
@@ -182,6 +343,33 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.binary().min(10).max(25),
+		{
+			type: 'string',
+			format: 'binary',
+			minLength: 10,
+			maxLength: 25
+		}
+	);
+
+	simpleTest(
+		joi.binary().length(20),
+		{
+			type: 'string',
+			format: 'binary',
+			minLength: 20,
+			maxLength: 20
+		}
+	);
+
+	simpleTest(
+		joi.array(),
+		{
+			type: 'array'
+		}
+	);
+
+	simpleTest(
 		joi.array().items(joi.boolean(), joi.date()),
 		{
 			type: 'array',
@@ -209,10 +397,20 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.array().items(joi.number()).length(10),
+		{
+			type: 'array',
+			items: { type: 'number', format: 'float' },
+			minItems: 10,
+			maxItems: 10,
+		}
+	);
+
+	simpleTest(
 		joi.alternatives(joi.string(), joi.number()).meta({ swaggerIndex: 1 }),
 		{ type: 'number', format: 'float' }
 	);
-
+/*
 	simpleTest(
 		joi.when('myRequiredField', {
 			is: true,
@@ -224,14 +422,45 @@ suite('swagger converts', (s) => {
 
 	simpleTest(
 		joi.when('myRequiredField', {
+			is: false,
+			then: joi.string(),
+			otherwise: joi.number(),
+		}),
+		{ type: 'number' }
+	);
+
+	simpleTest(
+		joi.when('myRequiredField', {
 			is: true,
 			then: joi.string(),
 			otherwise: joi.number(),
 		}).meta({ swaggerIndex: 1 }),
 		{ type: 'number', format: 'float' }
 	);
+*/
+	simpleTest(
+		joi.object({
+			req: joi.string().required(),
+			forbiddenAny: joi.forbidden(),
+			forbiddenString: joi.string().forbidden(),
+			forbiddenNumber: joi.number().forbidden(),
+			forbiddenBoolean: joi.boolean().forbidden(),
+			forbiddenBinary: joi.binary().forbidden()
+		}),
+		{ type: 'object', required: [ 'req' ], properties: { req: { type: 'string' } } }
+	);
 
-
+	simpleTest(
+		joi.object({
+			req: joi.string().required(),
+			aString: joi.string(),
+			aNumber: joi.number().integer(),
+			aBoolean: joi.boolean(),
+			aBinary: joi.binary()
+		}),
+		{ type: 'object', required: [ 'req' ], properties: { req: { type: 'string' }, aString: { type: 'string' }, aNumber: { type: 'integer' }, aBoolean: { type: 'boolean' }, aBinary: { type: 'string', format: 'binary' } } }
+	);
+/*
 	simpleTest(
 		joi.object({
 			req: joi.string().required(),
@@ -249,8 +478,7 @@ suite('swagger converts', (s) => {
 		}),
 		{ type: 'object', required: [ 'req' ], properties: { req: { type: 'string' } } }
 	);
-
-
+*/
 	simpleTest(
 		joi.object().keys({
 			id: joi.number().integer().required(),
@@ -286,7 +514,19 @@ suite('swagger converts', (s) => {
 		}).unknown(false),
 		{
 			type: 'object',
-			additionalProperties: false,
+			properties: {
+				value: { type: 'string', default: 'hello' },
+			},
+		}
+	);
+
+	simpleTest(
+		joi.object().keys({
+			value: joi.string().default('hello'),
+		}).unknown(true),
+		{
+			type: 'object',
+			additionalProperties: true,
 			properties: {
 				value: { type: 'string', default: 'hello' },
 			},
@@ -318,15 +558,11 @@ suite('swagger converts', (s) => {
 
 	simpleTest(
 		joi.string().example('sel').example('wyn'),
-		mainVersion < 14
-			? {
+			{
 				examples: [
 					'sel',
 					'wyn',
 				],
-				type: 'string',
-			} : {
-				example: 'wyn',
 				type: 'string',
 			}
 	);
@@ -363,7 +599,6 @@ suite('swagger converts', (s) => {
 				GeoPoint: {
 					type: 'object',
 					required: [ 'lat', 'lon' ],
-					additionalProperties: false,
 					properties: {
 						lat: {
 							type: 'number',
@@ -420,8 +655,8 @@ suite('swagger converts', (s) => {
 	const Person = joi.object({
 		firstName: joi.string().required(),
 		lastName: joi.string().required(),
-		children: joi.array().items(joi.lazy(() => Person)),
-	});
+		children: joi.array().items(joi.link('#person')),
+	}).id('person');
 
 	simpleTest(
 		Person,
@@ -433,19 +668,7 @@ suite('swagger converts', (s) => {
 				lastName: { type: 'string' },
 				children: {
 					type: 'array',
-					items: {
-						type: 'object',
-						required: [ 'firstName', 'lastName' ],
-						properties: {
-							firstName: { type: 'string' },
-							lastName: { type: 'string' },
-							children: {
-								type: 'array',
-								items: {
-								},
-							},
-						},
-					},
+					items: {},
 				},
 			},
 		}
@@ -477,10 +700,11 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
-		joi.date().default(Date.now, 'current date'),
+		joi.date().default(Date.now).description('current date'),
 		{
 			type: 'string',
 			format: 'date-time',
+			description: 'current date'
 		}
 	);
 	// test files

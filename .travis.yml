@@ -1,9 +1,12 @@
-sudo: false
 language: node_js
 node_js:
-  - v10
-  - v8
-install:
-  - npm i -g npm@latest
-  - npm ci
-script: "npm run lint && npm run test:travis"
+- stable
+deploy:
+  provider: npm
+  email: yadickson@gmail.com
+  api_key: "${NPM_TOKEN}"
+  on:
+    tags: true
+env:
+  global:
+    secure: v9lyMkI3jnLmMLUwo/DVO+QoWL4gqZumSPPV8EpF/nA4e3VhivgLafShRuupUETeGrzb7CveAy0U+a4Z6ZP5TlF44O4J6OzhWep0gpS6m8sar1rGld4xtYpXetGTSrRorS8qzIWLdPOhGrdPyLlwuIToaFzC+TbC8/FkCqBj28pA0VHRwlJLBMqmqWVj9T5DY96KSMxZLX2xRuSlW4q1Y6TJ2XmGF3CLWi895O/E7iHL3Glv0sEzr7EluFmJUnCeZKZNUWzsj/5AEUX7CcaQP8PsWeBgXWPbyTb0+1JpZSCx32ozg+EIV8rL9W9GyNAPY2PcgnzRM1IiUbgVgyVhfigNveFU3kCfg7EoFniueUgKMFyJt4C7z8lvWUcAyQ9SM2DH5ANrTnjVdtdFryqvpoLQeAniPEH0KcgW+W7m2afRm4iBp5yoVyFeACnPiqbYcIZRxp4KLUsG1xUapdHq6XB01/qfp3Etj/RHRdgx2rg/vD7f3fMhUqsnZ6sI+han6RIcjSyxpXNhpu4g810CopHfivxYwbONkaqkdtuIl6P82ixmVyDDnVJqAKkO8AjUNseNhOFqGCsRSl+pUpPAL85VmPLKCjxb2rtU/N2G1ExEy+uyzP7y7m+4c6LrvTIjD4MlA7JeoGNb0rsJcLowRGluTmi0GrwJpToV8/2FW5A=

@@ -1,11 +1,27 @@
-joi-to-swagger
+joi-to-swagger-ng
 ==============
 
-[![npm](https://img.shields.io/npm/v/joi-to-swagger.svg?logo=npm)](https://www.npmjs.com/package/joi-to-swagger)
-[![Dependency Status](https://img.shields.io/david/Twipped/joi-to-swagger.svg?style=flat-square)](https://david-dm.org/Twipped/joi-to-swagger)
-[![Download Status](https://img.shields.io/npm/dm/joi-to-swagger.svg?style=flat-square)](https://www.npmjs.com/package/joi-to-swagger)
+
+[![NPM version][npm-image]][npm-url]
+[![build status][travis-image]][travis-url]
+[![Test coverage][codecov-image]][codecov-url]
+[![David deps][david-image]][david-url]
+[![npm download][download-image]][download-url]
+
+[npm-image]: https://img.shields.io/npm/v/joi-to-swagger-ng.svg?style=flat-square
+[npm-url]: https://npmjs.org/package/joi-to-swagger-ng
+[travis-image]: https://img.shields.io/travis/koajs/joi-router.svg?style=flat-square
+[travis-url]: https://travis-ci.org/koajs/joi-router
+[codecov-image]: https://codecov.io/github/koajs/joi-router/coverage.svg?branch=master
+[codecov-url]: https://codecov.io/github/koajs/joi-router?branch=master
+[david-image]: https://img.shields.io/david/koajs/joi-router.svg?style=flat-square
+[david-url]: https://david-dm.org/koajs/joi-router
+[download-image]: https://img.shields.io/npm/dm/joi-to-swagger-ng.svg?style=flat-square
+[download-url]: https://npmjs.org/package/joi-to-swagger-ng
 
 Conversion library for transforming [Joi](http://npm.im/joi) schema objects into [Swagger](http://swagger.io) schema definitions.
+
+This fork use Joi@17 version
 
 ```js
 // input
@@ -50,7 +66,7 @@ joi.object().keys({
 ## Usage
 
 ```js
-var j2s = require('joi-to-swagger');
+var j2s = require('joi-to-swagger-ng');
 
 var {swagger, components} = j2s(mySchema, existingComponents);
 ```
@@ -110,8 +126,7 @@ J2S returns a result object containing `swagger` and `components` properties. `s
 
 - `any.example()` sets the `"example"` or `"examples"`.
   - `.example('hi')` -> `"example": "hi"`
-  - joi < v14: `.example('hi').example('hey')` -> `"examples": ["hi", "hey"]`
-  - joi v14: `.example('hi', 'hey')` -> `"examples": ["hi", "hey"]`
+  - `.example('hi').example('hey')` -> `"examples": ["hi", "hey"]`
 
 - `joi.any().meta({ swaggerType: 'file' }).description('simpleFile')` add a file to the swagger structure
 

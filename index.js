@@ -7,14 +7,17 @@ var patterns = {
 	alphanum: '^[a-zA-Z0-9]*$',
 	alphanumLower: '^[a-z0-9]*$',
 	alphanumUpper: '^[A-Z0-9]*$',
+	token: '^[a-zA-Z0-9_]*$',
+	tokenLower: '^[a-z0-9_]*$',
+	tokenUpper: '^[A-Z0-9_]*$'
 };
 
 var isJoi = function (joiObj) {
-	return !!((joiObj && joiObj.isJoi));
+	return !!((joiObj && joi.isSchema(joiObj)));
 };
 
 var hasJoiMeta = function (joiObj) {
-	return !!((isJoi(joiObj) && Array.isArray(joiObj._meta)));
+	return !!((isJoi(joiObj) && Array.isArray(joiObj['$_terms'].metas)));
 };
 
 var getJoiMetaProperty = function (joiObj, propertyName) {
@@ -22,7 +25,7 @@ var getJoiMetaProperty = function (joiObj, propertyName) {
 	// get headers added using meta function
 	if (isJoi(joiObj) && hasJoiMeta(joiObj)) {
 
-		var joiMeta = joiObj._meta;
+		var joiMeta = joiObj['$_terms'].metas;
 		let i = joiMeta.length;
 		while (i--) {
 			if (joiMeta[i][propertyName]) {
@@ -38,11 +41,11 @@ module.exports = exports = function parse (schema, existingComponents) {
 
 	if (!schema) throw new Error('No schema was passed.');
 
-	if (typeof schema === 'object' && !schema.isJoi) {
+	if (typeof schema === 'object' && !joi.isSchema(schema)) {
 		schema = joi.object().keys(schema);
 	}
 
-	if (!schema.isJoi) throw new TypeError('Passed schema does not appear to be a joi schema.');
+	if (!joi.isSchema(schema)) throw new TypeError('Passed schema does not appear to be a joi schema.');
 
 	var override = meta(schema, 'swagger');
 	if (override && meta(schema, 'swaggerOverride')) {
@@ -65,27 +68,28 @@ module.exports = exports = function parse (schema, existingComponents) {
 	var swagger;
 	var components = {};
 
-	if (parseAsType[schema._type]) {
-		swagger = parseAsType[schema._type](schema, existingComponents, components);
+	if (parseAsType[schema.type]) {
+		swagger = parseAsType[schema.type](schema, existingComponents, components);
 	} else {
-		throw new TypeError(`${schema._type} is not a recognized Joi type.`);
+		throw new TypeError(`${schema.type} is not a recognized Joi type.`);
 	}
 
 	if (!swagger) return { swagger, components };
 
-	if (schema._valids && schema._valids.has(null)) {
-		swagger.nullable = true;
+	if (schema._valids && schema._valids['_values']) {
+		swagger.nullable = schema._valids['_values'].has(null);
 	}
 
-	if (schema._description) {
-		swagger.description = schema._description;
+	var description = get(schema, '_flags.description');
+	if (description) {
+		swagger.description = description;
 	}
 
-	if (schema._examples.length) {
-		if (schema._examples.length === 1) {
-			swagger.example = extractExampleValue(schema._examples[0]);
+	if (schema['$_terms'].examples && schema['$_terms'].examples.length) {
+		if (schema['$_terms'].examples.length === 1) {
+			swagger.example = extractExampleValue(schema['$_terms'].examples[0]);
 		} else {
-			swagger.examples = schema._examples.map(extractExampleValue);
+			swagger.examples = schema['$_terms'].examples.map(extractExampleValue);
 		}
 	}
 
@@ -115,37 +119,40 @@ var parseAsType = {
 	number: (schema) => {
 		var swagger = {};
 
-		if (find(schema._tests, { name: 'integer' })) {
+		if (find(schema._rules, { name: 'integer' })) {
 			swagger.type = 'integer';
 		} else {
 			swagger.type = 'number';
-			if (find(schema._tests, { name: 'precision' })) {
+			if (find(schema._rules, { name: 'precision' })) {
 				swagger.format = 'double';
 			} else {
 				swagger.format = 'float';
 			}
 		}
 
-		if (find(schema._tests, { name: 'positive' })) {
-			swagger.minimum = 1;
+		var sign = find(schema._rules, { name: 'sign' })
+		if (sign) {
+			if (sign.args['sign'] === 'positive') {
+				swagger.minimum = 1;
+			}
+
+			if (sign.args['sign'] === 'negative') {
+				swagger.maximum = -1;
+			}
 		}
 
-		if (find(schema._tests, { name: 'negative' })) {
-			swagger.maximum = -1;
-		}
-
-		var min = find(schema._tests, { name: 'min' });
+		var min = find(schema._rules, { name: 'min' });
 		if (min) {
-			swagger.minimum = min.arg;
+			swagger.minimum = min.args['limit'];
 		}
 
-		var max = find(schema._tests, { name: 'max' });
+		var max = find(schema._rules, { name: 'max' });
 		if (max) {
-			swagger.maximum = max.arg;
+			swagger.maximum = max.args['limit'];
 		}
 
-		var valids = schema._valids.values().filter((s) => typeof s === 'number');
-		if (get(schema, '_flags.allowOnly') && valids.length) {
+		if (schema._valids && schema._valids['_values']) {
+			var valids = Array.from(schema._valids['_values']).filter((s) => typeof s === 'number');
 			swagger.enum = valids;
 		}
 
@@ -153,61 +160,63 @@ var parseAsType = {
 	},
 	string: (schema) => {
 		var swagger = { type: 'string' };
-		var strict = get(schema, '_settings.convert') === false;
+		var strict = schema['_preferences'] !== null && schema['_preferences']['convert'] === false;
 
-		if (find(schema._tests, { name: 'alphanum' })) {
-			if (strict && find(schema._tests, { name: 'lowercase' })) {
-				swagger.pattern = patterns.alphanumLower;
-			} else if (strict && find(schema._tests, { name: 'uppercase' })) {
-				swagger.pattern = patterns.alphanumUpper;
-			} else {
-				swagger.pattern = patterns.alphanum;
-			}
-		}
-
-		if (find(schema._tests, { name: 'token' })) {
-			if (find(schema._tests, { name: 'lowercase' })) {
-				swagger.pattern = patterns.alphanumLower;
-			} else if (find(schema._tests, { name: 'uppercase' })) {
-				swagger.pattern = patterns.alphanumUpper;
-			} else {
-				swagger.pattern = patterns.alphanum;
-			}
-		}
-
-		if (find(schema._tests, { name: 'email' })) {
-			swagger.format = 'email';
-			if (swagger.pattern) delete swagger.pattern;
-		}
-
-		if (find(schema._tests, { name: 'isoDate' })) {
-			swagger.format = 'date-time';
-			if (swagger.pattern) delete swagger.pattern;
-		}
-
-		var pattern = find(schema._tests, { name: 'regex' });
+		var pattern = find(schema._rules, { name: 'pattern' });
 		if (pattern) {
-			swagger.pattern = pattern.arg.pattern.toString().slice(1, -1);
+			swagger.pattern = pattern.args.regex.toString().slice(1, -1);
 		}
 
-		for (let i = 0; i < schema._tests.length; i++) {
-			const test = schema._tests[i];
+		if (find(schema._rules, { name: 'alphanum' })) {
+			var caseType = find(schema._rules, { name: 'case' })
+			if (strict && caseType && caseType.args['direction'] === 'lower') {
+				swagger.pattern = patterns.alphanumLower;
+			} else if (strict && caseType && caseType.args['direction'] === 'upper') {
+				swagger.pattern = patterns.alphanumUpper;
+			} else {
+				swagger.pattern = patterns.alphanum;
+			}
+		}
+
+		if (find(schema._rules, { name: 'token' })) {
+			var caseType = find(schema._rules, { name: 'case' })
+			if (caseType && caseType.args['direction'] === 'lower') {
+				swagger.pattern = patterns.tokenLower;
+			} else if (caseType && caseType.args['direction'] === 'upper') {
+				swagger.pattern = patterns.tokenUpper;
+			} else {
+				swagger.pattern = patterns.token;
+			}
+		}
+
+		if (find(schema._rules, { name: 'email' })) {
+			swagger.format = 'email';
+			delete swagger.pattern;
+		}
+
+		if (find(schema._rules, { name: 'isoDate' })) {
+			swagger.format = 'date-time';
+			delete swagger.pattern;
+		}
+
+		for (let i = 0; i < schema._rules.length; i++) {
+			const test = schema._rules[i];
 			if (test.name === 'min') {
-				swagger.minLength = test.arg;
+				swagger.minLength = test.args['limit'];
 			}
 
 			if (test.name === 'max') {
-				swagger.maxLength = test.arg;
+				swagger.maxLength = test.args['limit'];
 			}
 
 			if (test.name === 'length') {
-				swagger.minLength = test.arg;
-				swagger.maxLength = test.arg;
+				swagger.minLength = test.args['limit'];
+				swagger.maxLength = test.args['limit'];
 			}
 		}
 
-		var valids = schema._valids.values().filter((s) => typeof s === 'string');
-		if (get(schema, '_flags.allowOnly') && valids.length) {
+		if (schema._valids && schema._valids['_values']) {
+			var valids = Array.from(schema._valids['_values']).filter((s) => typeof s === 'string');
 			swagger.enum = valids;
 		}
 
@@ -220,19 +229,19 @@ var parseAsType = {
 			swagger.format = 'byte';
 		}
 
-		for (let i = 0; i < schema._tests.length; i++) {
-			const test = schema._tests[i];
+		for (let i = 0; i < schema._rules.length; i++) {
+			const test = schema._rules[i];
 			if (test.name === 'min') {
-				swagger.minLength = test.arg;
+				swagger.minLength = test.args['limit'];
 			}
 
 			if (test.name === 'max') {
-				swagger.maxLength = test.arg;
+				swagger.maxLength = test.args['limit'];
 			}
 
 			if (test.name === 'length') {
-				swagger.minLength = test.arg;
-				swagger.maxLength = test.arg;
+				swagger.minLength = test.args['limit'];
+				swagger.maxLength = test.args['limit'];
 			}
 		}
 
@@ -243,7 +252,7 @@ var parseAsType = {
 	alternatives: (schema, existingComponents, newComponentsByRef) => {
 		var index = meta(schema, 'swaggerIndex') || 0;
 
-		var matches = get(schema, [ '_inner', 'matches' ]);
+		var matches = get(schema, [ '$_terms', 'matches']);
 		var firstItem = get(matches, [ 0 ]);
 
 		var itemsSchema;
@@ -275,7 +284,7 @@ var parseAsType = {
 	},
 	array: (schema, existingComponents, newComponentsByRef) => {
 		var index = meta(schema, 'swaggerIndex') || 0;
-		var itemsSchema = get(schema, [ '_inner', 'items', index ]);
+		var itemsSchema = get(schema, [ '$_terms', 'items', index ]);
 
 		if (!itemsSchema) {
 			return { type: 'array' };
@@ -287,23 +296,24 @@ var parseAsType = {
 
 		var swagger = { type: 'array' };
 
-		for (let i = 0; i < schema._tests.length; i++) {
-			const test = schema._tests[i];
+		for (let i = 0; i < schema._rules.length; i++) {
+			const test = schema._rules[i];
 			if (test.name === 'min') {
-				swagger.minItems = test.arg;
+				swagger.minItems = test.args['limit'];
 			}
 
 			if (test.name === 'max') {
-				swagger.maxItems = test.arg;
+				swagger.maxItems = test.args['limit'];
 			}
 
 			if (test.name === 'length') {
-				swagger.minItems = test.arg;
-				swagger.maxItems = test.arg;
+				swagger.minItems = test.args['limit'];
+				swagger.maxItems = test.args['limit'];
 			}
 		}
 
-		if (find(schema._tests, { name: 'unique' })) {
+		var unique = find(schema._rules, { name: 'unique' })
+		if (unique) {
 			swagger.uniqueItems = true;
 		}
 
@@ -317,7 +327,7 @@ var parseAsType = {
 
 		var combinedComponents = merge({}, existingComponents || {}, newComponentsByRef || {});
 
-		var children = get(schema, '_inner.children') || [];
+		var children = get(schema, [ '$_terms', 'keys']) || [];
 		children.forEach((child) => {
 			var key = child.key;
 			if (!child.schema) return;
@@ -343,60 +353,83 @@ var parseAsType = {
 		}
 		swagger.properties = properties;
 
-		if (get(schema, '_flags.allowUnknown') === false) {
-			swagger.additionalProperties = false;
+		var unknown = get(schema, '_flags')
+		if (unknown && unknown['unknown'] !== null && typeof unknown['unknown'] === 'boolean') {
+			swagger.additionalProperties = unknown['unknown'] === true;
 		}
 
 		return swagger;
 	},
 	any: (schema, existingDefinitions, newDefinitionsByRef) => {
 		var swagger = {};
-		for (let i = 0; i < schema._tests.length; i++) {
-			const test = schema._tests[i];
+		for (let i = 0; i < schema._rules.length; i++) {
+			const test = schema._rules[i];
 			if (test.name === 'min') {
-				swagger.minLength = test.arg;
+				swagger.minLength = test.args['limit'];
 			}
 
 			if (test.name === 'max') {
-				swagger.maxLength = test.arg;
+				swagger.maxLength = test.args['limit'];
 			}
 
 			if (test.name === 'length') {
-				swagger.minLength = test.arg;
-				swagger.maxLength = test.arg;
+				swagger.minLength = test.args['limit'];
+				swagger.maxLength = test.args['limit'];
 			}
 		}
-		var valids = schema._valids.values();
-		if (valids.length) {
-			swagger.oneOf = valids.map(
-				(itemsSchema) =>
-				exports(itemsSchema, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
-			);
+
+		if (schema._valids && schema._valids['_values']) {
+			var valids = Array.from(schema._valids['_values']);
+				if (valids.length) {
+					swagger.oneOf = valids.map(
+					(itemsSchema) =>
+					exports(itemsSchema, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
+				);
+			}
 		}
+
+		if (schema._refs && schema._refs['refs'] && schema['$_terms'].whens) {
+			var valids = schema['$_terms'].whens;
+
+				if (valids.length) {
+					swagger.oneOf = valids.map(
+					(itemsSchema) => {
+					return exports(itemsSchema.ref, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
+				});
+			}
+		}
+
 		// convert property to file upload, if indicated by meta property
 		if (getJoiMetaProperty(schema, 'swaggerType') === 'file') {
 			swagger.type = 'file';
 			swagger.in = 'formData';
 		}
-		if (schema._description) {
-			swagger.description = schema._description;
+
+		if (!swagger.type){
+			swagger.type = 'string';
 		}
+
+		var description = get(schema, '_flags.description');
+		if (description) {
+			swagger.description = description;
+		}
+
 		return swagger;
 	},
-	lazy: (schema, existingDefinitions, newDefinitionsByRef) => {
-		var fn = get(schema, '_flags.lazy');
+	link: (schema, existingDefinitions, newDefinitionsByRef) => {
+		/*var fn = get(schema, '_flags.lazy');
 		if (fn && !schema.lazied) {
 			schema.lazied = true;
 			var newSchema = fn();
-			var parsed = parseAsType[newSchema._type](newSchema, existingDefinitions, newDefinitionsByRef);
+			var parsed = parseAsType[newSchema.type](newSchema, existingDefinitions, newDefinitionsByRef);
 			return parsed;
-		}
+		}*/
 		return {};
 	},
 };
 
 function meta (schema, key) {
-	var flattened = Object.assign.apply(null, [ {} ].concat(schema._meta));
+	var flattened = Object.assign.apply(null, [ {} ].concat(schema['$_terms'].metas));
 
 	return get(flattened, key);
 }
