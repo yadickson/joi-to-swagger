@@ -115,6 +115,24 @@ suite('swagger converts', (s) => {
 	);
 
 	simpleTest(
+		joi.number().integer().valid(1, 2, 3),
+		{
+			type: 'integer',
+			enum: [ 1, 2, 3 ],
+			nullable: false
+		}
+	);
+
+	simpleTest(
+		joi.number().integer().valid(1, 2, 3, null),
+		{
+			type: 'integer',
+			enum: [ 1, 2, 3 ],
+			nullable: true
+		}
+	);
+
+	simpleTest(
 		joi.string(),
 		{
 			type: 'string',
@@ -280,6 +298,24 @@ suite('swagger converts', (s) => {
 
 	simpleTest(
 		joi.string().allow('A', 'B', 'C', null),
+		{
+			type: 'string',
+			enum: [ 'A', 'B', 'C' ],
+			nullable: true
+		}
+	);
+
+	simpleTest(
+		joi.string().valid('A', 'B', 'C'),
+		{
+			type: 'string',
+			enum: [ 'A', 'B', 'C' ],
+			nullable: false
+		}
+	);
+
+	simpleTest(
+		joi.string().valid('A', 'B', 'C', null),
 		{
 			type: 'string',
 			enum: [ 'A', 'B', 'C' ],
