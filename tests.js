@@ -100,8 +100,7 @@ suite('swagger converts', (s) => {
 		joi.number().integer().allow(1, 2, 3),
 		{
 			type: 'integer',
-			enum: [ 1, 2, 3 ],
-			nullable: false
+			enum: [ 1, 2, 3 ]
 		}
 	);
 
@@ -109,8 +108,7 @@ suite('swagger converts', (s) => {
 		joi.number().integer().allow(1, 2, 3, null),
 		{
 			type: 'integer',
-			enum: [ 1, 2, 3 ],
-			nullable: true
+			enum: [ 1, 2, 3 ]
 		}
 	);
 
@@ -118,8 +116,7 @@ suite('swagger converts', (s) => {
 		joi.number().integer().valid(1, 2, 3),
 		{
 			type: 'integer',
-			enum: [ 1, 2, 3 ],
-			nullable: false
+			enum: [ 1, 2, 3 ]
 		}
 	);
 
@@ -127,8 +124,7 @@ suite('swagger converts', (s) => {
 		joi.number().integer().valid(1, 2, 3, null),
 		{
 			type: 'integer',
-			enum: [ 1, 2, 3 ],
-			nullable: true
+			enum: [ 1, 2, 3 ]
 		}
 	);
 
@@ -291,8 +287,7 @@ suite('swagger converts', (s) => {
 		joi.string().allow('A', 'B', 'C'),
 		{
 			type: 'string',
-			enum: [ 'A', 'B', 'C' ],
-			nullable: false
+			enum: [ 'A', 'B', 'C' ]
 		}
 	);
 
@@ -300,8 +295,7 @@ suite('swagger converts', (s) => {
 		joi.string().allow('A', 'B', 'C', null),
 		{
 			type: 'string',
-			enum: [ 'A', 'B', 'C' ],
-			nullable: true
+			enum: [ 'A', 'B', 'C' ]
 		}
 	);
 
@@ -309,8 +303,7 @@ suite('swagger converts', (s) => {
 		joi.string().valid('A', 'B', 'C'),
 		{
 			type: 'string',
-			enum: [ 'A', 'B', 'C' ],
-			nullable: false
+			enum: [ 'A', 'B', 'C' ]
 		}
 	);
 
@@ -318,8 +311,7 @@ suite('swagger converts', (s) => {
 		joi.string().valid('A', 'B', 'C', null),
 		{
 			type: 'string',
-			enum: [ 'A', 'B', 'C' ],
-			nullable: true
+			enum: [ 'A', 'B', 'C' ]
 		}
 	);
 
@@ -357,8 +349,7 @@ suite('swagger converts', (s) => {
 	simpleTest(
 		joi.boolean().allow(null),
 		{
-			type: 'boolean',
-			nullable: true,
+			type: 'boolean'
 		}
 	);
 

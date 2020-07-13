@@ -76,9 +76,9 @@ module.exports = exports = function parse (schema, existingComponents) {
 
 	if (!swagger) return { swagger, components };
 
-	if (schema._valids && schema._valids['_values']) {
-		swagger.nullable = schema._valids['_values'].has(null);
-	}
+//	if (schema._valids && schema._valids['_values'] && schema._valids['_values'].has(null)) {
+//		swagger.nullable = true;
+//	}
 
 	var description = get(schema, '_flags.description');
 	if (description) {
@@ -153,7 +153,9 @@ var parseAsType = {
 
 		if (schema._valids && schema._valids['_values']) {
 			var valids = Array.from(schema._valids['_values']).filter((s) => typeof s === 'number');
-			swagger.enum = valids;
+			if (valids.length > 0) {
+		    swagger.enum = valids;
+      }
 		}
 
 		return swagger;
@@ -217,7 +219,9 @@ var parseAsType = {
 
 		if (schema._valids && schema._valids['_values']) {
 			var valids = Array.from(schema._valids['_values']).filter((s) => typeof s === 'string');
-			swagger.enum = valids;
+      if (valids.length > 0) {
+        swagger.enum = valids;
+      }
 		}
 
 		return swagger;
@@ -380,7 +384,7 @@ var parseAsType = {
 
 		if (schema._valids && schema._valids['_values']) {
 			var valids = Array.from(schema._valids['_values']);
-				if (valids.length) {
+				if (valids.length > 0) {
 					swagger.oneOf = valids.map(
 					(itemsSchema) =>
 					exports(itemsSchema, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
@@ -391,7 +395,7 @@ var parseAsType = {
 		if (schema._refs && schema._refs['refs'] && schema['$_terms'].whens) {
 			var valids = schema['$_terms'].whens;
 
-				if (valids.length) {
+				if (valids.length > 0) {
 					swagger.oneOf = valids.map(
 					(itemsSchema) => {
 					return exports(itemsSchema.ref, Object.assign({}, existingDefinitions || {}, newDefinitionsByRef || {})).swagger
